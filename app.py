@@ -1,0 +1,272 @@
+import streamlit as st
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
+import pandas as pd
+import json
+
+# 페이지 설정
+st.set_page_config(
+    page_title="주간 업무 보고",
+    page_icon="📝",
+    layout="wide"
+)
+
+# Google Sheets 연결
+@st.cache_resource
+def connect_to_sheets():
+    scope = [
+        'https://spreadsheets.google.com/feeds',
+        'https://www.googleapis.com/auth/drive'
+    ]
+    
+    # Streamlit secrets에서 인증 정보 가져오기
+    creds_dict = dict(st.secrets["gcp_service_account"])
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+    
+    # 스프레드시트 열기
+    sheet = client.open_by_key(st.secrets["sheet_key"]).sheet1
+    return sheet
+
+# 데이터 로드
+def load_data(sheet):
+    try:
+        data = sheet.get_all_records()
+        if not data:
+            return pd.DataFrame(columns=['id', '작성시간', '팀', '작성자', '구분', '내용'])
+        return pd.DataFrame(data)
+    except:
+        return pd.DataFrame(columns=['id', '작성시간', '팀', '작성자', '구분', '내용'])
+
+# 데이터 저장
+def save_data(sheet, report):
+    row = [
+        report['id'],
+        report['작성시간'],
+        report['팀'],
+        report['작성자'],
+        report['구분'],
+        report['내용']
+    ]
+    sheet.append_row(row)
+
+# 데이터 삭제
+def delete_data(sheet, report_id):
+    all_rows = sheet.get_all_values()
+    for idx, row in enumerate(all_rows):
+        if idx == 0:  # 헤더 건너뛰기
+            continue
+        if str(row[0]) == str(report_id):  # id 컬럼 확인
+            sheet.delete_rows(idx + 1)
+            return True
+    return False
+
+# 메인 앱
+def main():
+    st.title("📝 주간 업무 보고")
+    st.caption("개발자: 반경돈")
+    st.markdown("---")
+    
+    # Google Sheets 연결
+    try:
+        sheet = connect_to_sheets()
+    except Exception as e:
+        st.error(f"Google Sheets 연결 실패: {e}")
+        st.info("관리자에게 문의하세요.")
+        return
+    
+    # 탭 구성
+    tab1, tab2 = st.tabs(["📄 보고서 작성", "📊 전체 보기"])
+    
+    # 탭 1: 보고서 작성
+    with tab1:
+        st.subheader("업무 보고 작성")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            writer = st.selectbox(
+                "작성자 이름",
+                ["연효흠", "여준섭", "류용재", "한은정", "박정현", "반경돈", "박희우"]
+            )
+        
+        with col2:
+            team = st.selectbox(
+                "팀 선택",
+                ["다각화사업팀", "개발팀", "기획팀", "디자인팀", "마케팅팀"]
+            )
+        
+        st.markdown("---")
+        
+        # 사업개발 섹션
+        st.markdown("### 📌 [사업개발]")
+        st.caption("3자검사를 제외한 내용 작성")
+        
+        business_template = """ㅇ 주제~작성
+  - (일시 및 장소) 
+  - (참석자) 
+  - (내용) 
+"""
+        
+        business_content = st.text_area(
+            "사업개발 내용 입력",
+            value=business_template,
+            height=250,
+            key="business_input"
+        )
+        
+        col1, col2, col3 = st.columns([2, 1, 2])
+        with col2:
+            if st.button("✅ 사업개발 제출", type="primary", use_container_width=True, key="submit_business"):
+                if not business_content or business_content.strip() == business_template.strip():
+                    st.error("❌ 사업개발 내용을 입력해주세요!")
+                else:
+                    try:
+                        df = load_data(sheet)
+                        new_id = len(df) + 1
+                        
+                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        report = {
+                            'id': new_id,
+                            '작성시간': timestamp,
+                            '팀': team,
+                            '작성자': writer,
+                            '구분': '사업개발',
+                            '내용': business_content
+                        }
+                        save_data(sheet, report)
+                        st.success("✅ 사업개발 제출 완료!")
+                        st.balloons()
+                    except Exception as e:
+                        st.error(f"제출 실패: {e}")
+        
+        st.markdown("---")
+        
+        # 3자검사 섹션
+        st.markdown("### 🔍 [3자검사]")
+        st.caption("3자검사, 용접, RISE 사업 관련 내용 작성")
+        
+        inspection_template = """ㅇ 주제~ 작성
+  - (일시 및 장소) 
+  - (참석자) 
+  - (내용) 
+"""
+        
+        inspection_content = st.text_area(
+            "3자검사 내용 입력",
+            value=inspection_template,
+            height=250,
+            key="inspection_input"
+        )
+        
+        col1, col2, col3 = st.columns([2, 1, 2])
+        with col2:
+            if st.button("✅ 3자검사 제출", type="primary", use_container_width=True, key="submit_inspection"):
+                if not inspection_content or inspection_content.strip() == inspection_template.strip():
+                    st.error("❌ 3자검사 내용을 입력해주세요!")
+                else:
+                    try:
+                        df = load_data(sheet)
+                        new_id = len(df) + 1
+                        
+                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        report = {
+                            'id': new_id,
+                            '작성시간': timestamp,
+                            '팀': team,
+                            '작성자': writer,
+                            '구분': '3자검사',
+                            '내용': inspection_content
+                        }
+                        save_data(sheet, report)
+                        st.success("✅ 3자검사 제출 완료!")
+                        st.balloons()
+                    except Exception as e:
+                        st.error(f"제출 실패: {e}")
+    
+    # 탭 2: 전체 보기
+    with tab2:
+        st.subheader("📊 전체 보고서 현황")
+        
+        try:
+            df = load_data(sheet)
+            
+            if df.empty:
+                st.info("아직 제출된 보고서가 없습니다.")
+            else:
+                # 필터
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    selected_team = st.selectbox(
+                        "팀 필터",
+                        ["전체"] + list(df['팀'].unique()),
+                        key="team_filter"
+                    )
+                
+                with col2:
+                    selected_type = st.selectbox(
+                        "구분 필터",
+                        ["전체"] + list(df['구분'].unique()),
+                        key="type_filter"
+                    )
+                
+                with col3:
+                    st.metric("총 보고 건수", len(df))
+                
+                with col4:
+                    if st.button("🔄 새로고침"):
+                        st.rerun()
+                
+                # 필터링
+                filtered_df = df.copy()
+                if selected_team != "전체":
+                    filtered_df = filtered_df[filtered_df['팀'] == selected_team]
+                if selected_type != "전체":
+                    filtered_df = filtered_df[filtered_df['구분'] == selected_type]
+                
+                st.markdown("---")
+                
+                # 구분별로 그룹화하여 표시
+                for report_type in filtered_df['구분'].unique():
+                    type_df = filtered_df[filtered_df['구분'] == report_type]
+                    
+                    st.markdown(f"## {report_type}")
+                    
+                    for team in type_df['팀'].unique():
+                        team_df = type_df[type_df['팀'] == team]
+                        
+                        with st.expander(f"**{team}** ({len(team_df)}건)", expanded=True):
+                            for idx, row in team_df.iterrows():
+                                col1, col2 = st.columns([6, 1])
+                                
+                                with col1:
+                                    st.markdown(f"{row['내용']}")
+                                
+                                with col2:
+                                    if st.button("🗑️", key=f"delete_{row['id']}", type="secondary", help="삭제"):
+                                        try:
+                                            delete_data(sheet, row['id'])
+                                            st.success("삭제되었습니다!")
+                                            st.rerun()
+                                        except Exception as e:
+                                            st.error(f"삭제 실패: {e}")
+                                
+                                st.markdown("---")
+                
+                # CSV 다운로드
+                st.markdown("### 📥 데이터 다운로드")
+                csv = df.to_csv(index=False, encoding='utf-8-sig')
+                st.download_button(
+                    label="📄 CSV 다운로드",
+                    data=csv,
+                    file_name=f"주간보고_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv"
+                )
+                
+        except Exception as e:
+            st.error(f"데이터 로드 실패: {e}")
+
+if __name__ == "__main__":
+    main()
