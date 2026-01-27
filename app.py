@@ -4,6 +4,10 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import pandas as pd
 import json
+import ssl
+
+# SSL 인증 우회 (회사 방화벽 대응)
+ssl._create_default_https_context = ssl._create_unverified_context
 
 # 페이지 설정
 st.set_page_config(
@@ -99,28 +103,28 @@ def main():
         
         st.markdown("---")
         
-        # 사업개발 섹션
-        st.markdown("### 📌 [사업개발]")
-        st.caption("3자검사를 제외한 내용 작성")
+        # 사업개발 - 실적
+        st.markdown("### 📌 [사업개발 - 실적]")
+        st.caption("3자검사를 제외한 실적 내용 작성")
         
-        business_template = """ㅇ 주제~작성
+        business_result_template = """ㅇ 주제~작성
   - (일시 및 장소) 
   - (참석자) 
   - (내용) 
 """
         
-        business_content = st.text_area(
-            "사업개발 내용 입력",
-            value=business_template,
-            height=250,
-            key="business_input"
+        business_result_content = st.text_area(
+            "사업개발 실적 내용 입력",
+            value=business_result_template,
+            height=200,
+            key="business_result_input"
         )
         
         col1, col2, col3 = st.columns([2, 1, 2])
         with col2:
-            if st.button("✅ 사업개발 제출", type="primary", use_container_width=True, key="submit_business"):
-                if not business_content or business_content.strip() == business_template.strip():
-                    st.error("❌ 사업개발 내용을 입력해주세요!")
+            if st.button("✅ 사업개발 실적 제출", type="primary", use_container_width=True, key="submit_business_result"):
+                if not business_result_content or business_result_content.strip() == business_result_template.strip():
+                    st.error("❌ 사업개발 실적 내용을 입력해주세요!")
                 else:
                     try:
                         df = load_data(sheet)
@@ -132,39 +136,39 @@ def main():
                             '작성시간': timestamp,
                             '팀': team,
                             '작성자': writer,
-                            '구분': '사업개발',
-                            '내용': business_content
+                            '구분': '사업개발-실적',
+                            '내용': business_result_content
                         }
                         save_data(sheet, report)
-                        st.success("✅ 사업개발 제출 완료!")
+                        st.success("✅ 사업개발 실적 제출 완료!")
                         st.balloons()
                     except Exception as e:
                         st.error(f"제출 실패: {e}")
         
         st.markdown("---")
         
-        # 3자검사 섹션
-        st.markdown("### 🔍 [3자검사]")
-        st.caption("3자검사, 용접, RISE 사업 관련 내용 작성")
+        # 사업개발 - 계획
+        st.markdown("### 📌 [사업개발 - 계획]")
+        st.caption("3자검사를 제외한 계획 내용 작성")
         
-        inspection_template = """ㅇ 주제~ 작성
+        business_plan_template = """ㅇ 주제~작성
   - (일시 및 장소) 
   - (참석자) 
   - (내용) 
 """
         
-        inspection_content = st.text_area(
-            "3자검사 내용 입력",
-            value=inspection_template,
-            height=250,
-            key="inspection_input"
+        business_plan_content = st.text_area(
+            "사업개발 계획 내용 입력",
+            value=business_plan_template,
+            height=200,
+            key="business_plan_input"
         )
         
         col1, col2, col3 = st.columns([2, 1, 2])
         with col2:
-            if st.button("✅ 3자검사 제출", type="primary", use_container_width=True, key="submit_inspection"):
-                if not inspection_content or inspection_content.strip() == inspection_template.strip():
-                    st.error("❌ 3자검사 내용을 입력해주세요!")
+            if st.button("✅ 사업개발 계획 제출", type="primary", use_container_width=True, key="submit_business_plan"):
+                if not business_plan_content or business_plan_content.strip() == business_plan_template.strip():
+                    st.error("❌ 사업개발 계획 내용을 입력해주세요!")
                 else:
                     try:
                         df = load_data(sheet)
@@ -176,11 +180,143 @@ def main():
                             '작성시간': timestamp,
                             '팀': team,
                             '작성자': writer,
-                            '구분': '3자검사',
-                            '내용': inspection_content
+                            '구분': '사업개발-계획',
+                            '내용': business_plan_content
                         }
                         save_data(sheet, report)
-                        st.success("✅ 3자검사 제출 완료!")
+                        st.success("✅ 사업개발 계획 제출 완료!")
+                        st.balloons()
+                    except Exception as e:
+                        st.error(f"제출 실패: {e}")
+        
+        st.markdown("---")
+        
+        # 3자검사 - 실적
+        st.markdown("### 🔍 [3자검사 - 실적]")
+        st.caption("3자검사, 용접, RISE 사업 관련 실적 내용 작성")
+        
+        inspection_result_template = """ㅇ 주제~ 작성
+  - (일시 및 장소) 
+  - (참석자) 
+  - (내용) 
+"""
+        
+        inspection_result_content = st.text_area(
+            "3자검사 실적 내용 입력",
+            value=inspection_result_template,
+            height=200,
+            key="inspection_result_input"
+        )
+        
+        col1, col2, col3 = st.columns([2, 1, 2])
+        with col2:
+            if st.button("✅ 3자검사 실적 제출", type="primary", use_container_width=True, key="submit_inspection_result"):
+                if not inspection_result_content or inspection_result_content.strip() == inspection_result_template.strip():
+                    st.error("❌ 3자검사 실적 내용을 입력해주세요!")
+                else:
+                    try:
+                        df = load_data(sheet)
+                        new_id = len(df) + 1
+                        
+                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        report = {
+                            'id': new_id,
+                            '작성시간': timestamp,
+                            '팀': team,
+                            '작성자': writer,
+                            '구분': '3자검사-실적',
+                            '내용': inspection_result_content
+                        }
+                        save_data(sheet, report)
+                        st.success("✅ 3자검사 실적 제출 완료!")
+                        st.balloons()
+                    except Exception as e:
+                        st.error(f"제출 실패: {e}")
+        
+        st.markdown("---")
+        
+        # 3자검사 - 계획
+        st.markdown("### 🔍 [3자검사 - 계획]")
+        st.caption("3자검사, 용접, RISE 사업 관련 계획 내용 작성")
+        
+        inspection_plan_template = """ㅇ 주제~ 작성
+  - (일시 및 장소) 
+  - (참석자) 
+  - (내용) 
+"""
+        
+        inspection_plan_content = st.text_area(
+            "3자검사 계획 내용 입력",
+            value=inspection_plan_template,
+            height=200,
+            key="inspection_plan_input"
+        )
+        
+        col1, col2, col3 = st.columns([2, 1, 2])
+        with col2:
+            if st.button("✅ 3자검사 계획 제출", type="primary", use_container_width=True, key="submit_inspection_plan"):
+                if not inspection_plan_content or inspection_plan_content.strip() == inspection_plan_template.strip():
+                    st.error("❌ 3자검사 계획 내용을 입력해주세요!")
+                else:
+                    try:
+                        df = load_data(sheet)
+                        new_id = len(df) + 1
+                        
+                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        report = {
+                            'id': new_id,
+                            '작성시간': timestamp,
+                            '팀': team,
+                            '작성자': writer,
+                            '구분': '3자검사-계획',
+                            '내용': inspection_plan_content
+                        }
+                        save_data(sheet, report)
+                        st.success("✅ 3자검사 계획 제출 완료!")
+                        st.balloons()
+                    except Exception as e:
+                        st.error(f"제출 실패: {e}")
+        
+        st.markdown("---")
+        
+        # 월간보고 섹션
+        st.markdown("### 📅 [월간보고]")
+        st.caption("월간 업무 보고 내용 작성")
+        
+        monthly_template = """ㅇ 주제~ 작성
+  - (일시 및 장소) 
+  - (참석자) 
+  - (내용) 
+"""
+        
+        monthly_content = st.text_area(
+            "월간보고 내용 입력",
+            value=monthly_template,
+            height=200,
+            key="monthly_input"
+        )
+        
+        col1, col2, col3 = st.columns([2, 1, 2])
+        with col2:
+            if st.button("✅ 월간보고 제출", type="primary", use_container_width=True, key="submit_monthly"):
+                if not monthly_content or monthly_content.strip() == monthly_template.strip():
+                    st.error("❌ 월간보고 내용을 입력해주세요!")
+                else:
+                    try:
+                        df = load_data(sheet)
+                        new_id = len(df) + 1
+                        
+                        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        report = {
+                            'id': new_id,
+                            '작성시간': timestamp,
+                            '팀': team,
+                            '작성자': writer,
+                            '구분': '월간보고',
+                            '내용': monthly_content
+                        }
+                        save_data(sheet, report)
+                        st.success("✅ 월간보고 제출 완료!")
                         st.balloons()
                     except Exception as e:
                         st.error(f"제출 실패: {e}")
@@ -245,7 +381,8 @@ def main():
                                     st.markdown(f"{row['내용']}")
                                 
                                 with col2:
-                                    if st.button("🗑️", key=f"delete_{row['id']}", type="secondary", help="삭제"):
+                                    # idx를 포함해서 완전히 고유한 key 생성
+                                    if st.button("🗑️", key=f"delete_{idx}_{row['id']}", type="secondary", help="삭제"):
                                         try:
                                             delete_data(sheet, row['id'])
                                             st.success("삭제되었습니다!")
