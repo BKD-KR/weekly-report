@@ -36,25 +36,30 @@ def connect_to_sheets():
 # 보고 기간 불러오기
 def load_period_settings(spreadsheet):
     try:
+        # "설정" 시트를 이름으로 찾기
         settings_sheet = spreadsheet.worksheet("설정")
         data = settings_sheet.get_all_records()
         settings = {}
         for row in data:
             settings[row['항목']] = row['값']
         return settings.get('실적기간', ''), settings.get('계획기간', ''), settings.get('월간보고', '')
-    except:
+    except Exception as e:
+        st.error(f"설정 불러오기 실패: {e}")
         return '', '', ''
 
 # 보고 기간 저장하기
 def save_period_settings(spreadsheet, result_period, plan_period, monthly_info):
     try:
+        # "설정" 시트를 이름으로 찾기
         settings_sheet = spreadsheet.worksheet("설정")
+        
         # 기존 데이터 업데이트
         settings_sheet.update('B2', result_period)  # 실적기간
         settings_sheet.update('B3', plan_period)    # 계획기간
         settings_sheet.update('B4', monthly_info)   # 월간보고
         return True
-    except:
+    except Exception as e:
+        st.error(f"저장 실패 상세: {str(e)}")
         return False
 
 # 데이터 로드
@@ -98,7 +103,7 @@ def main():
     # Google Sheets 연결
     try:
         spreadsheet = connect_to_sheets()
-        sheet = spreadsheet.sheet1  # 메인 데이터 시트
+        sheet = spreadsheet.worksheet("시트1")  # 보고 데이터는 "시트1"에 저장
     except Exception as e:
         st.error(f"Google Sheets 연결 실패: {e}")
         st.info("관리자에게 문의하세요.")
