@@ -41,17 +41,18 @@ def load_period_settings(spreadsheet):
         settings = {}
         for row in data:
             settings[row['항목']] = row['값']
-        return settings.get('실적기간', ''), settings.get('계획기간', '')
+        return settings.get('실적기간', ''), settings.get('계획기간', ''), settings.get('월간보고', '')
     except:
-        return '', ''
+        return '', '', ''
 
 # 보고 기간 저장하기
-def save_period_settings(spreadsheet, result_period, plan_period):
+def save_period_settings(spreadsheet, result_period, plan_period, monthly_info):
     try:
         settings_sheet = spreadsheet.worksheet("설정")
         # 기존 데이터 업데이트
         settings_sheet.update('B2', result_period)  # 실적기간
         settings_sheet.update('B3', plan_period)    # 계획기간
+        settings_sheet.update('B4', monthly_info)   # 월간보고
         return True
     except:
         return False
@@ -104,7 +105,7 @@ def main():
         return
     
     # 보고 기간 불러오기
-    saved_result_period, saved_plan_period = load_period_settings(spreadsheet)
+    saved_result_period, saved_plan_period, saved_monthly_info = load_period_settings(spreadsheet)
     
     # 보고 기간 설정 (관리자용)
     with st.expander("📅 보고 기간 설정 (관리자용)", expanded=False):
@@ -123,11 +124,16 @@ def main():
                 key="plan_period_input"
             )
         
+        monthly_info_input = st.text_input(
+            "월간보고 안내",
+            value=saved_monthly_info if saved_monthly_info else "1월 업무 보고",
+            key="monthly_info_input"
+        )
+        
         if st.button("💾 보고 기간 저장", type="primary"):
-            if save_period_settings(spreadsheet, result_period_input, plan_period_input):
+            if save_period_settings(spreadsheet, result_period_input, plan_period_input, monthly_info_input):
                 st.success("✅ 보고 기간이 저장되었습니다!")
                 st.balloons()
-                # 캐시 초기화하여 새로고침
                 st.cache_resource.clear()
                 st.rerun()
             else:
@@ -136,11 +142,13 @@ def main():
     # 저장된 보고 기간 표시
     display_result = saved_result_period if saved_result_period else "설정되지 않음"
     display_plan = saved_plan_period if saved_plan_period else "설정되지 않음"
+    display_monthly = saved_monthly_info if saved_monthly_info else "설정되지 않음"
     
     st.markdown(f"""
 **보고기간**  
 ㅇ 실        적: {display_result}  
-ㅇ 계        획: {display_plan}
+ㅇ 계        획: {display_plan}  
+ㅇ 월간보고: {display_monthly}
     """)
     
     st.markdown("---")
