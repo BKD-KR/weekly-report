@@ -70,6 +70,30 @@ def delete_data(sheet, report_id):
 def main():
     st.title("📝 주간 업무 보고")
     st.caption("개발자: 반경돈")
+    
+    # 보고 기간 설정 (관리자가 수정 가능)
+    with st.expander("📅 보고 기간 설정 (관리자용)", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            result_period = st.text_input(
+                "실적 기간",
+                value="1.19. ~ 2.1.(2주)",
+                key="result_period"
+            )
+        with col2:
+            plan_period = st.text_input(
+                "계획 기간",
+                value="2.2. ~ 2.8.(1주)",
+                key="plan_period"
+            )
+    
+    # 보고 기간 표시
+    st.markdown(f"""
+**보고기간**  
+ㅇ 실        적: {result_period}  
+ㅇ 계        획: {plan_period}
+    """)
+    
     st.markdown("---")
     
     # Google Sheets 연결
