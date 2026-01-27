@@ -30,8 +30,31 @@ def connect_to_sheets():
     client = gspread.authorize(creds)
     
     # 스프레드시트 열기
-    sheet = client.open_by_key(st.secrets["sheet_key"]).sheet1
-    return sheet
+    spreadsheet = client.open_by_key(st.secrets["sheet_key"])
+    return spreadsheet
+
+# 보고 기간 불러오기
+def load_period_settings(spreadsheet):
+    try:
+        settings_sheet = spreadsheet.worksheet("설정")
+        data = settings_sheet.get_all_records()
+        settings = {}
+        for row in data:
+            settings[row['항목']] = row['값']
+        return settings.get('실적기간', ''), settings.get('계획기간', '')
+    except:
+        return '', ''
+
+# 보고 기간 저장하기
+def save_period_settings(spreadsheet, result_period, plan_period):
+    try:
+        settings_sheet = spreadsheet.worksheet("설정")
+        # 기존 데이터 업데이트
+        settings_sheet.update('B2', result_period)  # 실적기간
+        settings_sheet.update('B3', plan_period)    # 계획기간
+        return True
+    except:
+        return False
 
 # 데이터 로드
 def load_data(sheet):
@@ -71,38 +94,56 @@ def main():
     st.title("📝 주간 업무 보고")
     st.caption("개발자: 반경돈")
     
-    # 보고 기간 설정 (관리자가 수정 가능)
-    with st.expander("📅 보고 기간 설정 (관리자용)", expanded=False):
-        col1, col2 = st.columns(2)
-        with col1:
-            result_period = st.text_input(
-                "실적 기간",
-                value="1.19. ~ 2.1.(2주)",
-                key="result_period"
-            )
-        with col2:
-            plan_period = st.text_input(
-                "계획 기간",
-                value="2.2. ~ 2.8.(1주)",
-                key="plan_period"
-            )
-    
-    # 보고 기간 표시
-    st.markdown(f"""
-**보고기간**  
-ㅇ 실        적: {result_period}  
-ㅇ 계        획: {plan_period}
-    """)
-    
-    st.markdown("---")
-    
     # Google Sheets 연결
     try:
-        sheet = connect_to_sheets()
+        spreadsheet = connect_to_sheets()
+        sheet = spreadsheet.sheet1  # 메인 데이터 시트
     except Exception as e:
         st.error(f"Google Sheets 연결 실패: {e}")
         st.info("관리자에게 문의하세요.")
         return
+    
+    # 보고 기간 불러오기
+    saved_result_period, saved_plan_period = load_period_settings(spreadsheet)
+    
+    # 보고 기간 설정 (관리자용)
+    with st.expander("📅 보고 기간 설정 (관리자용)", expanded=False):
+        st.warning("⚠️ 이 설정은 모든 사용자에게 적용됩니다!")
+        col1, col2 = st.columns(2)
+        with col1:
+            result_period_input = st.text_input(
+                "실적 기간",
+                value=saved_result_period if saved_result_period else "1.19. ~ 2.1.(2주)",
+                key="result_period_input"
+            )
+        with col2:
+            plan_period_input = st.text_input(
+                "계획 기간",
+                value=saved_plan_period if saved_plan_period else "2.2. ~ 2.8.(1주)",
+                key="plan_period_input"
+            )
+        
+        if st.button("💾 보고 기간 저장", type="primary"):
+            if save_period_settings(spreadsheet, result_period_input, plan_period_input):
+                st.success("✅ 보고 기간이 저장되었습니다!")
+                st.balloons()
+                # 캐시 초기화하여 새로고침
+                st.cache_resource.clear()
+                st.rerun()
+            else:
+                st.error("❌ 저장 실패! '설정' 시트가 있는지 확인하세요.")
+    
+    # 저장된 보고 기간 표시
+    display_result = saved_result_period if saved_result_period else "설정되지 않음"
+    display_plan = saved_plan_period if saved_plan_period else "설정되지 않음"
+    
+    st.markdown(f"""
+**보고기간**  
+ㅇ 실        적: {display_result}  
+ㅇ 계        획: {display_plan}
+    """)
+    
+    st.markdown("---")
     
     # 탭 구성
     tab1, tab2 = st.tabs(["📄 보고서 작성", "📊 전체 보기"])
@@ -405,7 +446,6 @@ def main():
                                     st.markdown(f"{row['내용']}")
                                 
                                 with col2:
-                                    # idx를 포함해서 완전히 고유한 key 생성
                                     if st.button("🗑️", key=f"delete_{idx}_{row['id']}", type="secondary", help="삭제"):
                                         try:
                                             delete_data(sheet, row['id'])
