@@ -30,9 +30,9 @@ def connect_to_sheets():
     client = gspread.authorize(creds)
     
     # 스프레드시트 열기
-sheet_url = "https://docs.google.com/spreadsheets/d/1mpfUq2pTa262TLk9JM9xrzeg3R1_LlzsSWjqINzQ0hw/edit"
-spreadsheet = client.open_by_url(sheet_url)
-return spreadsheet
+    sheet_url = "https://docs.google.com/spreadsheets/d/1mpfUq2pTa262TLk9JM9xrzeg3R1_LlzsSWjqINzQ0hw/edit"
+    spreadsheet = client.open_by_url(sheet_url)
+    return spreadsheet
 
 # 보고 기간 불러오기
 def load_period_settings(spreadsheet):
